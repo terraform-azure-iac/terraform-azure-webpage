@@ -1,0 +1,62 @@
+name: Terraform Tests
+
+on:
+  workflow_dispatch:
+
+
+defaults:
+  run:
+    working-directory: .
+
+jobs:
+  terraform:
+    name: Terraform Tests
+    runs-on: self-hosted
+
+    env:
+      ARM_CLIENT_ID: ${{secrets.TF_ARM_CLIENT_ID}}
+      ARM_CLIENT_SECRET: ${{secrets.TF_ARM_CLIENT_SECRET}}
+      ARM_SUBSCRIPTION_ID: ${{secrets.TF_ARM_SUBSCRIPTION_ID}}
+      ARM_TENANT_ID: ${{secrets.TF_ARM_TENANT_ID}}
+
+    steps:
+      - uses: actions/checkout@v2     
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v1
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform format
+        run: terraform fmt
+
+      - name: Terraform Validate
+        run: terraform validate
+
+      - uses: terraform-linters/setup-tflint@v1
+        name: Setup TFLint
+        with:
+          tflint_version: v0.29.0
+
+      - name: Show version
+        run: tflint --version
+
+      - name: Init TFLint
+        run: tflint --init
+
+      - name: Run TFLint
+        run: tflint -f compact
+
+      
+  Checkov:
+    name: Checkov Security Tests
+    runs-on: self-hosted
+    steps:
+      - name: Run Checkov action
+        id: checkov
+        uses: bridgecrewio/checkov-action@master
+        with:
+          framework: terraform # optional: run only on a specific infrastructure {cloudformation,terraform,kubernetes,all}
+          container_user: 1000
+
